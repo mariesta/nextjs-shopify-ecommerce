@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useRouter } from 'next/router'
 import Image from 'next/image'
 
 import Container from '@mui/material/Container';
@@ -7,48 +6,35 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
 
 import Navigation from '../../components/Navigation';
 import BreadcrumbsNavigation from '../../components/BreadcrumbsNavigation';
 import ProductsList from '../../components/ProductsList';
-import PRODUCTS from '../../data.js';
+import { shopifyClient, parseShopifyResponse } from '../../lib/shopify'
 
-export default function ProductPage() {
-  const router = useRouter()
+export default function ProductPage({product}) {
 
-  // Navigate to collection page
-  const goToCollection = () => router.push(`/collections/${collection}`)
-
-  // Get productId from url: /products/[productId]
-  const { productId } = router.query
-  // Get product data
-  const product = PRODUCTS.find(product => product.id === parseInt(productId))
-  const { name, image, price, collection } = product || {}
+  const { id, title, images, variants, handle } = product
+  const { src: productImage } = images[0]
+  const { price } = variants[0]
 
   return (
     <Box>
       <Navigation />
       {product &&
         <Container maxWidth="lg">
-          <BreadcrumbsNavigation title={name} />
+          <BreadcrumbsNavigation title={title} />
             <Grid container direction="row">
               <Grid item xs={6}>
                 <Image
-                  src={image}
-                  alt={`Picture of ${name}`}
+                  src={productImage}
+                  alt={`Picture of ${title}`}
                   width={500} automatically provided
                   height={500} automatically provided
                 />
               </Grid>
               <Grid item xs={6}>
-                <Typography variant="h3" my={2}>{name}</Typography>
-                 <Chip
-                  label={collection}
-                  color="primary"
-                  size="large"
-                  variant="outlined"
-                  onClick={goToCollection} />
+                <Typography variant="h3" my={2}>{title}</Typography>
                 <Grid mt={4}>
                   <Typography variant="h6" component="span">Price: </Typography>
                   <Typography variant="body1" component="span">{price}</Typography>
@@ -63,3 +49,15 @@ export default function ProductPage() {
     </Box>
   );
 }
+
+export const getServerSideProps = async ({params}) => {
+  const { productHandle } = params
+  // Fetch one product
+  const product = await shopifyClient.product.fetchByHandle(productHandle);
+
+  return {
+   props: {
+    product: parseShopifyResponse(product),
+  },
+ };
+};

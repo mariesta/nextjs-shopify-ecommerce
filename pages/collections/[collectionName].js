@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useRouter } from 'next/router'
 
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
@@ -8,12 +7,9 @@ import Box from '@mui/material/Box';
 import Navigation from '../../components/Navigation';
 import BreadcrumbsNavigation from '../../components/BreadcrumbsNavigation';
 import ProductsList from '../../components/ProductsList';
-import PRODUCTS from '../../data.js';
+import { shopifyClient, parseShopifyResponse } from '../../lib/shopify'
 
-export default function CollectionPage() {
-  const router = useRouter()
-  const { collectionName } = router.query
-  const products = PRODUCTS.filter(product => product.collection === collectionName)
+export default function CollectionPage({products, collectionName}) {
   return (
     <Box>
       <Navigation />
@@ -24,3 +20,19 @@ export default function CollectionPage() {
     </Box>
   );
 }
+
+export const getServerSideProps = async ({params}) => {
+  const { collectionName } = params
+  // Fetch all the collections
+  const collectionsData = await shopifyClient.collection.fetchAllWithProducts();
+  const collections = parseShopifyResponse(collectionsData);
+  // Get the right one
+  const collection = collections.find(collection => collection.handle === collectionName)
+
+  return {
+   props: {
+    collectionName,
+    products: collection.products,
+  },
+ };
+};
